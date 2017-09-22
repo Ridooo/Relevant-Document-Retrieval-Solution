@@ -1,0 +1,55 @@
+
+Helpdesk's Tickets Data Extraction
+
+=========================================================================================
+1. Connect to helpdesk database using "supp_hd" user and run the following statements:
+
+
+CREATE TABLE temp_jiraaction (ISSUEID NUMBER(18,0), ACTIONBODY CLOB);
+
+DECLARE
+CURSOR c_jiraaction IS SELECT  DISTINCT issueID from jiraaction;
+CURSOR c_actionbody (v_issueID jiraaction.issueID%TYPE) IS SELECT actionbody  FROM jiraaction WHERE issueID=v_issueID ORDER BY ID;
+rec_actionbody	c_actionbody%ROWTYPE;
+v_actionbody	jiraaction.actionbody%TYPE;
+BEGIN
+	FOR rec_jiraaction IN c_jiraaction
+	LOOP
+		  dbms_lob.createtemporary(v_actionbody, TRUE);
+		OPEN c_actionbody(rec_jiraaction.issueID);
+		LOOP
+			FETCH	c_actionbody INTO rec_actionbody;
+			
+			--dbms_lob.append(v_actionbody,REPLACE(rec_actionbody.actionbody, chr(10)||chr(11)||chr(13), ' '));
+			dbms_lob.append(v_actionbody,REPLACE(rec_actionbody.actionbody, chr(10), ' '));
+			--dbms_lob.append(v_actionbody,regexp_replace(rec_actionbody.actionbody, '([\x0A])', ' '));
+		EXIT WHEN c_actionbody%NOTFOUND;
+		END LOOP;
+		INSERT INTO temp_jiraaction VALUES(rec_jiraaction.issueID,v_actionbody);
+		COMMIT;
+		CLOSE c_actionbody;
+		--v_actionbody := null;
+	END LOOP;
+END;
+/
+
+
+2.  Fetch tickets' records and store them on HDFS:
+Pre-requisites:
+1. Linux operating system
+2. Java JDK  : "1.6.0_23" 64-Bit Server
+3. Hadoop 1.2.1
+4. Sqoop 1.4.5
+
+Execute Sqoop command:
+
+sqoop import --connect jdbc:oracle:thin:@//192.168.0.10:1521/helpdesk --username supp_hd --password supp_hd --query "SELECT JIS.ID, '##ENDOFID '|| JIS.PKEY||'##ENDOFPKEY', REPLACE(JIS.SUMMARY, CHR(10),' ')||'##ENDOFSUMMARY', replace(replace(JIS.DESCRIPTION,CHR(10), ' ') ,CHR(13),' ') ||'##ENDOFDESCRIPTION', replace(replace(JAC.ACTIONBODY,CHR(10), ' ') ,CHR(13),' ')||'##ENDOFACTIONBODY' FROM SUPP_HD.JIRAISSUE JIS JOIN  SUPP_HD.temp_jiraaction JAC ON (JIS.ID=JAC.ISSUEID) WHERE   \$CONDITIONS " --fields-terminated-by '\t' --num-mappers 1 --target-dir /data/helpdeskData --split-by JIS.I
+
+
+3. Check the extracted data stored in HDFS directory 
+
+/data/helpdeskData
+
+
+
+

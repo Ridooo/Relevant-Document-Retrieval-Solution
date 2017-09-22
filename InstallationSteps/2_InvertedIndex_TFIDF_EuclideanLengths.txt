@@ -1,0 +1,25 @@
+Inverted Index / TF-IDF matrix / EuclideanLengths
+
+Pre-requisites:
+1. Linux operating system
+2. Java JDK  : "1.6.0_23" 64-Bit Server
+3. Hadoop 1.2.1
+4. Sqoop 1.4.5
+5. Tickets' records are extracted and stored in HDFS directory  "/data/helpdeskData"
+6. Jar file "HDTicketRetrival.jar"
+
+
+1. Execute the jar file:
+hadoop jar HDTicketRetrival.jar org/greenwich/invertedIndex/InvertedIndexDriver /data/helpdeskData /data/EuclideanLengthsOutFolder
+
+
+Notes: 
+"/data/helpdeskData" is the input folder where the tickets' records are stored.
+"/data/InvertedIndexOutFolder" is the folder that contain the inverted index.
+"/data/tfidf2OutFolder" is the folder that contain the TF-IDF file.
+"/data/EuclideanLengthsOutFolder" is the HDFS folder that contain EuclideanLengths 
+	
+	
+
+	
+ 
